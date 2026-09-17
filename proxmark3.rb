@@ -1,8 +1,8 @@
 class Proxmark3 < Formula
   desc "RRG/Iceman Proxmark3 client, CDC flasher and firmware bundle"
   homepage "http://www.proxmark.org/"
-  url "https://github.com/RfidResearchGroup/proxmark3/archive/refs/tags/v4.21611.tar.gz"
-  sha256 "e149802a10acb3358ad452f424f83527c00ee38fbb65d6400a4acd570d4aaef8"
+  url "https://github.com/RfidResearchGroup/proxmark3/archive/refs/tags/v4.23346.tar.gz"
+  sha256 "5d727313d912d8d758365d3528fbf8af7463e5deec23a9bef79f1fab4fd0c66d"
   head do
     if ENV.has_key?('HOMEBREW_TRAVIS_COMMIT')
       url "https://github.com/RfidResearchGroup/proxmark3.git", :branch => "#{ENV['HOMEBREW_TRAVIS_BRANCH']}", :revision => "#{ENV['HOMEBREW_TRAVIS_COMMIT']}"
@@ -30,8 +30,8 @@ class Proxmark3 < Formula
 
   FUNCTIONS = %w[em4x50 felica hfplot hfsniff hitag iclass iso14443a iso14443b iso15693 legicrf lf nfcbarcode zx8211]
   STANDALONE = {
-    'lf' => %w[em4100emul em4100rswb em4100rsww em4100rwc hidbrute hidfcbrute icehid multihid nedap_sim nexid proxbrute prox2brute samyrun tharexde],
-    'hf' => %w[14asniff 14bsniff 15sniff aveful bog cardhopper colin craftbyte iceclass legic legicsim mattyrun mfcsim msdsal reblay st25_tearoffF tcprst tmudford unisniff young emvpng doegox_auth0]
+    'lf' => %w[em4100emul em4100rswb em4100rsww em4100rwc hidbrute hidfcbrute icehid multihid nedap_sim nexid prox2brute proxbrute prox2brute samyrun tharexde],
+    'hf' => %w[14asniff 14bsniff 15sim 15sniff aveful bog cardhopper colin craftbyte doegox_auth0 doegox_commit emvpng iceclass legic legic_rdv4 legicsim mattyrun mfcsim msdsal reblay st25_tearoff tcprst tmudford unisniff young]
   }
 
   FUNCTIONS.each do |func|
