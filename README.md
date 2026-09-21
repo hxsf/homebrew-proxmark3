@@ -174,3 +174,9 @@ included in the same test-bot build before the dependent firmware. Forks use the
 fully qualified upstream compiler; a runner-local bootstrap bottle stays outside
 the artifacts uploaded by the fork. The retained compiler's version and Arm
 archive checksums are unchanged by this package split.
+
+`autobump.yml` tracks upstream releases by starting at `proxmark-client` and
+using `synced_versions_formulae.json` to update all seven client/firmware
+formulae in one PR. The compiler is updated separately, not with Proxmark tags.
+Bot-created PR builds may require a maintainer to select **Approve workflows**
+in GitHub before the bottle jobs run.
