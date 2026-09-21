@@ -26,6 +26,11 @@ class ProxmarkFirmwareCustom < Formula
   depends_on "rfidresearchgroup/proxmark3/arm-none-eabi-gcc" => :build
   depends_on :macos
 
+  on_intel do
+    # Required by the upstream Arm SDK until its formula declares this dependency.
+    depends_on "zstd" => :build
+  end
+
   # Maps each --without-<name> option to the exact-case SKIP_* flag that
   # common_arm/Makefile.hal expects upstream (e.g. SKIP_EM4x50, not
   # SKIP_EM4X50).

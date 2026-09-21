@@ -147,6 +147,12 @@ archive checksums. No separate newlib resource is downloaded and upstream
 compiler flags are unchanged. The `CROSS` make variable selects that dependency's
 executables explicitly.
 
+The Intel Arm SDK compiler dynamically links to `zstd`, and its debugger needs
+`xz`. The compiler formula declares both as Intel-only runtime dependencies;
+firmware formulae also declare `zstd` as an Intel-only build dependency so forks
+work with the existing upstream compiler formula. Installed firmware does not
+need either library.
+
 The current tap and upstream toolchain package are macOS-only. Linux support is
 planned for future validation; this dependency does not establish Linux support.
 

@@ -3,12 +3,19 @@ class ArmNoneEabiGcc < Formula
   homepage "https://gitlab.arm.com/tooling/gnu-toolchains-for-arm"
   version "13.3-2024.7"
   license "GPL-3.0-or-later"
+  revision 1
 
   livecheck do
     skip "Prebuilt Arm toolchain archive, updated manually"
   end
 
   depends_on :macos
+
+  on_intel do
+    # Arm's Intel debugger needs liblzma; the compiler needs libzstd.
+    depends_on "xz"
+    depends_on "zstd"
+  end
 
   if Hardware::CPU.intel?
     url "https://armkeil.blob.core.windows.net/developer/Files/downloads/gnu/13.3.rel1/binrel/arm-gnu-toolchain-13.3.rel1-darwin-x86_64-arm-none-eabi.tar.xz"
@@ -24,6 +31,7 @@ class ArmNoneEabiGcc < Formula
   end
 
   test do
+    system bin/"arm-none-eabi-gdb", "--version"
     (testpath/"test.c").write <<~C
       #include <stdint.h>
       #include <string.h>

@@ -119,6 +119,26 @@ a temporary local bottle for the upstream dependency. Homebrew's `file://`
 bottle download/SHA256 handling and `bottled_or_built?` predicate were checked
 separately. No runner-local compiler bottle is uploaded by the fork.
 
+GitHub Actions run [35588164751](https://github.com/hxsf/homebrew-proxmark3/actions/runs/35588164751)
+at `a4ece8f` passed all selected client/firmware builds and tests on `macos-15`
+and `macos-26` (both arm64). On `macos-15-intel`, the clients were skipped because
+their dependency graph lacked compatible bottles. All five firmware builds
+failed when Arm's `cc1` could not load `/usr/local/opt/zstd/lib/libzstd.1.dylib`.
+
+The Intel Arm SDK archive was downloaded and its SHA256 matched the formula.
+Inspection of all 50 host Mach-O files found two external Homebrew libraries:
+`libzstd.1.dylib` for the compiler executables and `liblzma.5.dylib` for GDB.
+The installed arm64 SDK's 50 host Mach-O files linked only to system libraries.
+Neither inspection ran the Intel executables.
+
+The compiler now declares Intel-only runtime dependencies on `xz` and `zstd`;
+the five firmware formulae also declare `zstd` as a build dependency for
+compatibility with the existing upstream compiler formula used by forks.
+Homebrew formula loading under simulated Intel and arm64 systems verified these
+dependency scopes. The compiler test now also starts GDB to check its runtime
+library loading. This does not establish that an Intel source build or bottle
+build succeeds.
+
 ### Release automation
 
 Offline publication fixtures cover PR state, destination, head SHA, latest CI
@@ -144,5 +164,6 @@ An iCopy-X build was also investigated, but it requires a dedicated upstream
 client configuration and is not included in the final package set.
 
 No physical device was flashed. Qt image tests were offscreen, not a native
-Cocoa interaction audit. Intel, older macOS versions, HEAD builds, complete
-custom-option combinations and GitHub Actions/release publication were not run.
+Cocoa interaction audit. Intel builds have not passed. Older macOS versions,
+HEAD builds, complete custom-option combinations and release publication were
+not validated.

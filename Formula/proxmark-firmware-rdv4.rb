@@ -14,6 +14,11 @@ class ProxmarkFirmwareRdv4 < Formula
   depends_on "rfidresearchgroup/proxmark3/arm-none-eabi-gcc" => :build
   depends_on :macos
 
+  on_intel do
+    # Required by the upstream Arm SDK until its formula declares this dependency.
+    depends_on "zstd" => :build
+  end
+
   def install
     args = %W[
       BREW_PREFIX=#{HOMEBREW_PREFIX}
