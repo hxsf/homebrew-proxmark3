@@ -119,6 +119,14 @@ a temporary local bottle for the upstream dependency. Homebrew's `file://`
 bottle download/SHA256 handling and `bottled_or_built?` predicate were checked
 separately. No runner-local compiler bottle is uploaded by the fork.
 
+### Release automation
+
+Offline publication fixtures cover PR state, destination, head SHA, latest CI
+success, artifact run/attempt pinning, and rejection when the selected PR/run
+changes. A temporary local Git remote verifies exact-SHA tagging, idempotency and
+refusal to move an existing tag. The complete workflows still need execution on
+GitHub-hosted runners; no release was published by this validation.
+
 ## Deferred and unverified cases
 
 The upstream documented 256 KiB example was tested without changes using Arm's

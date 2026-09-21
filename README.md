@@ -180,3 +180,16 @@ using `synced_versions_formulae.json` to update all seven client/firmware
 formulae in one PR. The compiler is updated separately, not with Proxmark tags.
 Bot-created PR builds may require a maintainer to select **Approve workflows**
 in GitHub before the bottle jobs run.
+
+After a version PR has passing bottle builds, dispatch the publish workflow on
+the repository's default branch with the PR number (and optionally its expected
+head SHA). Publication requires an open PR targeting that branch and a successful
+latest build for its exact head. Artifacts are pinned to that run and attempt;
+changes to the PR or selected CI run stop publication.
+All three platform artifacts must exist in that attempt; after rerunning only
+failed jobs, choose **Re-run all jobs** before publishing.
+
+The workflow uploads bottles, commits their metadata and pushes to the default
+branch, then tags that exact published commit. Tagging is invoked explicitly
+because pushes made with `GITHUB_TOKEN` do not trigger another push workflow.
+An existing tag is accepted only when it already identifies the same commit.
