@@ -44,8 +44,11 @@ jobs:
 
       - run: brew test-bot --only-cleanup-before
 
-      - name: Set up the upstream firmware toolchain tap
-        run: brew tap rfidresearchgroup/proxmark3
+      - name: Set up and trust the upstream firmware toolchain
+        run: |
+          brew tap rfidresearchgroup/proxmark3
+          # The dependency tap is separate from the tap trusted by test-bot.
+          brew trust --formula rfidresearchgroup/proxmark3/arm-none-eabi-gcc
 
       - run: brew test-bot --only-setup
 
