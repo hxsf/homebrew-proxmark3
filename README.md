@@ -1,85 +1,142 @@
-Homebrew tap for RRG/Iceman Proxmark3 repo
-=========================================
+# Homebrew tap for RRG/Iceman Proxmark
 
-[Homebrew](http://brew.sh) - is a open-source package manager for Apple macOS.
+[Homebrew](https://brew.sh) packages for the
+[RRG/Iceman Proxmark3](https://github.com/RfidResearchGroup/proxmark3) project on
+macOS. Choose a shared client and install firmware for each device separately.
+The formulae use upstream make targets and build options without patching the
+upstream Makefiles, platform definitions, or flashing scripts.
 
-This repository contains homebrew formulas for RRG/Iceman Proxmark3 project with it dependencies.
+## Packages
 
-[note]
-The old HID-flasher doesn't compile on this version. You'll need to manually fix/compile it on MacOS but this old flasher software is used if you have firmware from 2012 installed on your device.  
+| Formula | Contents |
+| --- | --- |
+| `proxmark-client` | Command-line client, CDC flasher, scripts, dictionaries and host tools |
+| `proxmark-client-gui` | The same client with Qt waveform analysis and image windows |
+| `proxmark-firmware-generic` | `PM3GENERIC`, for generic 512 KB devices |
+| `proxmark-firmware-rdv4` | `PM3RDV4` |
+| `proxmark-firmware-pm5` | `PM5` |
+| `proxmark-firmware-ultimate` | `PM3ULTIMATE` |
+| `proxmark-firmware-custom` | Firmware with selectable platform, extras, feature trimming and standalone mode |
 
-### Install
+The two clients install the same commands and are mutually exclusive. Different
+firmware packages can coexist: each installs its images in its own directory. Firmware packages do
+not declare either client as a runtime dependency, so you can choose and link
+the CLI or GUI client. Clients do not need the ARM compiler or a firmware package.
 
-- Install homebrew if you haven't yet already done so: http://brew.sh/
+iCopy-X is not packaged here: upstream requires a dedicated client build with
+its own USB flashing behavior. This tap keeps the two general client variants.
 
-- Tap this repo: `brew tap rfidresearchgroup/proxmark3`
+The GUI remains a command-line client with auxiliary windows. It depends on
+`qtbase`, `qtimageformats` and `qtsvg`, retaining waveform and image support
+without the complete `qt` collection (WebEngine, Quick3D, Multimedia, etc.).
 
-- Install Proxmark3:
-  - `brew install proxmark3` for stable release 
-  - `brew install --HEAD proxmark3` for latest non-stable from GitHub (use this if previous command fails)
-  - `brew install --with-blueshark proxmark3` for blueshark support, stable release
-  - `brew install --HEAD --with-blueshark proxmark3` for blueshark support, latest non-stable from GitHub (use this if previous command fails)
-  - `brew install --with-generic --with-flash proxmark3` build for generic (non-RDV4) devices with external flash chip, stable release
+`PM3OTHER` is an upstream deprecated name for Generic, not a separate preset.
+There is no `small` platform upstream. The current release's documented 256 KB
+example exceeds that capacity; a `small` preset is deferred rather than changing
+upstream defaults. Custom feature trimming remains available.
 
-### Build options
-
-Use `brew info proxmark3` to see all available options.
-
-#### Platform selection
-
-Firmware is built for the Proxmark3 RDV4 device by default. Use the following options to select other platforms:
-
-- `--with-generic`: build for generic (non-RDV4) devices, see [platform](https://github.com/RfidResearchGroup/proxmark3/blob/master/doc/md/Use_of_Proxmark/4_Advanced-compilation-parameters.md#platform).
-- `--with-small`: enable build-time size limit for devices with 256kB flash, see [256kb versions](https://github.com/RfidResearchGroup/proxmark3/blob/master/doc/md/Use_of_Proxmark/4_Advanced-compilation-parameters.md#256kb-versions).
-
-The size option checks capacity; it does not guarantee that current firmware fits.
-Additional feature trimming may be required for 256kB devices.
-
-#### Platform extras
-
-RRG/Iceman Proxmark3 supports multiple [PLATFORM_EXTRAS](https://github.com/RfidResearchGroup/proxmark3/blob/master/doc/md/Use_of_Proxmark/4_Advanced-compilation-parameters.md#platform_extras) parameters. Multiple options can be used at the same time, but make sure, you select the correct ones for your device.
-
-- `--with-blueshark`: for blueshark support
-- `--with-flash`: for generic proxmark 3 devices with external flash chip
-- `--with-smartcard`: for generic proxmark 3 devices with smartcard support
-
-#### Removing features
-
-It's possible to remove features to reduce firmware size for 256kB devices using options such as `--without-lf`, `--without-hitag`, etc.
-
-`--without-foo` corresponds to the `SKIP_FOO` compile options listed [here](https://github.com/RfidResearchGroup/proxmark3/blob/master/doc/md/Use_of_Proxmark/4_Advanced-compilation-parameters.md#256kb-versions).
-
-#### Standalone mode
-
-Firmware is built with the `LF_SAMYRUN` standalone mode by default. Use the `--with-lf-foo` or `--with-hf-foo` options to select a different standalone mode,
-or `--without-standalone` to disable standalone mode altogether.
-
-`--with-lf-foo` corresponds to the `STANDALONE=LF_FOO` compile options listed [here](https://github.com/RfidResearchGroup/proxmark3/blob/master/doc/md/Use_of_Proxmark/4_Advanced-compilation-parameters.md#standalone).
-
-### Errors while running
-
-- If you see this message 
-    `To reinstall HEAD, run brew reinstall proxmark3`
-- do this
-   ```
-   brew remove proxmark3
-   brew reinstall proxmark3
-   ```
-
-### Force HomeBrew to pull the latest source from github
+## Install
 
 ```sh
-brew upgrade --fetch-HEAD proxmark3
+brew tap rfidresearchgroup/proxmark3
+brew install proxmark-client proxmark-firmware-rdv4
+# Or choose proxmark-client-gui instead of proxmark-client.
 ```
-	 
-### Usage
 
-Proxmark3 client will be installed in 
-`/usr/local/bin/proxmark3`  
+Bottles are used when published for a compatible macOS version and CPU;
+otherwise Homebrew builds from source. Custom builds with options compile from source.
 
-Firmware will be located in 
-`/usr/local/share/firmware/`  
+To switch clients, unlink the installed variant before installing/linking the
+other one. Firmware packages do not need to be switched.
 
-The paths mentioned above are symlinks created by Homebrew (`brew install` implies `brew link`) to your Cellar.
+```sh
+brew unlink proxmark-client
+brew install proxmark-client-gui
+# If already installed: brew link proxmark-client-gui
+```
 
-See [instructions on the RRG repo](https://github.com/RfidResearchGroup/proxmark3/blob/master/doc/md/Installation_Instructions/macOS-Homebrew-Installation-Instructions.md#flash-the-bootrom--fullimage)
+All packages also support `--HEAD`. Keep the client and firmware on the same
+upstream release; for HEAD builds, use matching source revisions.
+
+## Firmware and flashing
+
+Firmware images are installed under each package's prefix, for example:
+
+```text
+$(brew --prefix proxmark-firmware-rdv4)/share/proxmark3/firmware/rdv4/
+  bootrom.elf
+  fullimage.elf
+  recovery.bin
+```
+
+The client retains the upstream `proxmark3`, `pm3` and `pm3-flash*` commands.
+Pass explicit image paths to `pm3-flash` to select a firmware package:
+
+```sh
+firmware_dir="$(brew --prefix proxmark-firmware-rdv4)/share/proxmark3/firmware/rdv4"
+pm3-flash -b "$firmware_dir/bootrom.elf"
+pm3-flash "$firmware_dir/fullimage.elf"
+```
+
+`recovery.bin` is the combined image for JTAG recovery. No global default
+firmware symlink is created. The original `pm3-flash-all` helpers keep their existing filename lookup and
+do not select among the separate firmware packages automatically.
+
+The client also installs the upstream platform-independent smartcard upgrade
+resources (`sim011`, `sim013`, `sim020`), scripts, dictionaries and host tools.
+
+## Custom firmware
+
+```sh
+brew info rfidresearchgroup/proxmark3/proxmark-firmware-custom
+brew install --build-from-source proxmark-firmware-custom --with-generic --with-flash
+```
+
+RDV4 is the default. Choose at most one of `--with-generic`, `--with-5`,
+`--with-ultimate`. Other options retain their upstream
+meaning:
+
+- Extras: `--with-blueshark`, `--with-smartcard`, `--with-flash`;
+  PM5 also supports `--with-bwm`, `--without-lowbatt-shutdown`, and
+  `--without-lowbatt-beep`. Upstream couples the last option to the shutdown
+  check: disabling the beep also disables low-battery shutdown.
+- Feature trimming: `--without-lf`, `--without-hf`, `--without-seos`,
+  `--without-em4x50`, `--without-desfire-sim`, and the other upstream `SKIP_*` flags.
+- Standalone: `--with-lf-samyrun`, `--with-hf-mfcsim`, etc., or
+  `--without-standalone`. Select at most one mode.
+- `--with-small` requires `--with-generic`, retains the legacy trimming flags,
+  and enables upstream's 256 KB size check. Current releases may still exceed
+  the limit and need additional explicit `--without-*` choices.
+
+Custom images are in `share/proxmark3/firmware/custom` under that package's
+prefix. GUI selection belongs to the client
+package, not the firmware build.
+See upstream [Advanced compilation parameters](https://github.com/RfidResearchGroup/proxmark3/blob/master/doc/md/Use_of_Proxmark/4_Advanced-compilation-parameters.md).
+
+## Toolchain and migration
+
+Firmware builds retain the upstream tap dependency
+`rfidresearchgroup/proxmark3/arm-none-eabi-gcc`. It supplies the complete Arm GNU
+toolchain, including binutils and the matching C library headers. The existing compiler formula stays in this tap at the same version and
+archive checksums. No separate newlib resource is downloaded and upstream
+compiler flags are unchanged. The `CROSS` make variable selects that dependency's
+executables explicitly.
+
+The current tap and upstream toolchain package are macOS-only. Linux support is
+planned for future validation; this dependency does not establish Linux support.
+
+Unlink or uninstall an old combined `proxmark3`/`proxmark3-*` package before
+linking a new client, since they install the same commands. Install the new
+firmware package for your device separately.
+
+If `arm-none-eabi-gcc` is already installed from another tap, Homebrew may
+refuse the same-named upstream package. When intentionally switching the compiler
+used for source builds, uninstall that existing compiler and install the fully
+qualified upstream dependency:
+
+```sh
+brew uninstall arm-none-eabi-gcc
+brew install rfidresearchgroup/proxmark3/arm-none-eabi-gcc
+```
+
+Users installing prebuilt client/firmware bottles do not need the compiler.
