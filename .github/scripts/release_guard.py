@@ -9,7 +9,7 @@ import re
 import subprocess
 
 
-BOTTLE_RUNNERS = ("macos-15", "macos-26", "macos-15-intel")
+BOTTLE_RUNNERS = ("macos-15", "macos-26")
 
 
 def api(endpoint, *, paginate=False):

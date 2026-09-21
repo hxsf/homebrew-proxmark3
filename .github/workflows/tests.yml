@@ -1,5 +1,6 @@
 # Generated from `brew tap-new` template (Homebrew 7.0.4).
 # Linux runner dropped: all formulae here are macOS-only.
+# Intel bottles are not built: Homebrew no longer bottles their dependencies.
 name: brew test-bot
 
 on:
@@ -21,7 +22,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-15, macos-26, macos-15-intel]
+        os: [macos-15, macos-26]
     runs-on: ${{ matrix.os }}
     permissions:
       actions: read

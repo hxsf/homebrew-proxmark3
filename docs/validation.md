@@ -139,6 +139,11 @@ dependency scopes. The compiler test now also starts GDB to check its runtime
 library loading. This does not establish that an Intel source build or bottle
 build succeeds.
 
+The bottle matrix and publication checks now require only `macos-15` and
+`macos-26` (arm64). Homebrew no longer builds new Intel dependency bottles, and
+this tap does not maintain a separate build pipeline for that dependency graph.
+Intel formula support remains available for best-effort source builds.
+
 ### Release automation
 
 Offline publication fixtures cover PR state, destination, head SHA, latest CI

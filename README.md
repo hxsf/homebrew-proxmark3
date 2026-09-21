@@ -44,9 +44,16 @@ brew install proxmark-client proxmark-firmware-rdv4
 # Or choose proxmark-client-gui instead of proxmark-client.
 ```
 
-Bottles are used when published for a compatible macOS version and CPU;
-otherwise Homebrew builds from source. The CI targets arm64 Sequoia/Tahoe and
-Intel Sequoia. Custom builds with options compile from source.
+Bottles are used when published for a compatible macOS version and CPU.
+The CI builds bottles for arm64 Sequoia and Tahoe. Custom builds with options
+compile from source.
+
+Intel Macs retain source-build support on a best-effort basis. Homebrew has
+[stopped building new Intel bottles](https://docs.brew.sh/Support-Tiers#future-macos-support),
+and the current client dependencies lack a complete set of compatible bottles.
+This tap does not build or require Intel bottles for releases. Intel users may
+need to build dependencies, including Qt and Python, from source; successful
+Intel installation has not been validated.
 
 To switch clients, unlink the installed variant before installing/linking the
 other one. Firmware packages do not need to be switched.
@@ -192,7 +199,7 @@ the repository's default branch with the PR number (and optionally its expected
 head SHA). Publication requires an open PR targeting that branch and a successful
 latest build for its exact head. Artifacts are pinned to that run and attempt;
 changes to the PR or selected CI run stop publication.
-All three platform artifacts must exist in that attempt; after rerunning only
+Both arm64 platform artifacts must exist in that attempt; after rerunning only
 failed jobs, choose **Re-run all jobs** before publishing.
 
 The workflow uploads bottles, commits their metadata and pushes to the default
