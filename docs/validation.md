@@ -38,7 +38,7 @@ and use only upstream's `CROSS` variable to select the declared toolchain.
 The machine already had that SDK installed by the old `hxsf/proxmark` formula.
 Both architectures' archive URLs and SHA256 values were checked against the
 upstream RRG formula and match. This existing toolchain was preserved.
-Homebrew source installations of the firmware formulae used
+Homebrew source installations of the final firmware formulae, including launchers, used
 `--ignore-dependencies --skip-link` to avoid replacing the same-name compiler
 solely to change its tap attribution. Thus actual formula build/install/test
 logic was exercised, but clean-machine dependency installation was not.
@@ -63,6 +63,44 @@ compiler is build-only.
 The custom formula's rejection paths were also checked: multiple platforms,
 small without Generic, PM5-only extras on another platform, multiple standalone
 modes, and a mode combined with `--without-standalone`.
+
+### Firmware launchers
+
+Each firmware package also provides three shell launchers in `bin`:
+`pm3-flash-<name>-all`, `pm3-flash-<name>-bootrom` and
+`pm3-flash-<name>-fullimage`, for `generic`, `rdv4`, `pm5`, `ultimate` and
+`custom`. The package payload is three firmware files and three shell launchers;
+it adds no compiler, headers or compiled host executable.
+
+The launchers select the package's firmware directory and find the original
+upstream helper on `PATH`, allowing either linked client variant without a
+client runtime dependency. They check required ELF files, preserve arguments
+and exit status, and leave device discovery and the flashing protocol to the
+upstream helper. They do not verify the selected hardware or client/firmware
+version match.
+
+All five packages were rebuilt, installed and passed `brew test --force` with
+the launchers. The tests substitute every helper and isolate `PATH`, covering
+all fifteen commands with no arguments, help/list, device index/force and a port
+argument containing spaces. They also verify working-directory selection,
+relative `PATH` resolution, the helper's exit status, and the missing-client
+installation hint. No real helper or hardware is invoked by these formula tests.
+
+Additional checks ran against the installed scripts: POSIX shell syntax,
+ShellCheck, firmware paths containing spaces, missing required images, and the
+ability to flash one image without requiring the other. Missing-image fixtures
+use copies of the installed scripts with only their firmware directory changed,
+so the installed kegs are not damaged. ShellCheck excludes SC2043 because a
+single-image mode intentionally generates a one-element loop.
+
+Three integration checks execute the unchanged upstream helpers against a fake
+`proxmark3` executable with an explicit dummy port. They confirm the original
+helper receives the selected working directory, preserves its bootrom/all mode
+and forwards its exit status; no device discovery or flashing occurs. As with
+the upstream scripts, this check uses a space-free helper installation prefix.
+
+The launchers check firmware before resolving the client, including for help or
+list requests. A damaged package therefore reports its missing image first.
 
 ## Deferred and unverified cases
 
