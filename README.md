@@ -32,6 +32,9 @@ Firmware is built for the Proxmark3 RDV4 device by default. Use the following op
 - `--with-generic`: build for generic (non-RDV4) devices, see [platform](https://github.com/RfidResearchGroup/proxmark3/blob/master/doc/md/Use_of_Proxmark/4_Advanced-compilation-parameters.md#platform).
 - `--with-small`: enable build-time size limit for devices with 256kB flash, see [256kb versions](https://github.com/RfidResearchGroup/proxmark3/blob/master/doc/md/Use_of_Proxmark/4_Advanced-compilation-parameters.md#256kb-versions).
 
+The size option checks capacity; it does not guarantee that current firmware fits.
+Additional feature trimming may be required for 256kB devices.
+
 #### Platform extras
 
 RRG/Iceman Proxmark3 supports multiple [PLATFORM_EXTRAS](https://github.com/RfidResearchGroup/proxmark3/blob/master/doc/md/Use_of_Proxmark/4_Advanced-compilation-parameters.md#platform_extras) parameters. Multiple options can be used at the same time, but make sure, you select the correct ones for your device.

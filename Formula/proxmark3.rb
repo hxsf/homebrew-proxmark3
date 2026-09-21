@@ -32,24 +32,48 @@ class Proxmark3 < Formula
   depends_on "openssl" => :recommended
   depends_on "qt@5" => :recommended
 
-  FUNCTIONS = %w[em4x50 felica hfplot hfsniff hitag iclass iso14443a iso14443b iso15693 legicrf lf nfcbarcode
-                 zx8211].freeze
+  # Maps each --without-<name> option to the exact-case SKIP_* flag that
+  # common_arm/Makefile.hal expects upstream (e.g. SKIP_EM4x50, not
+  # SKIP_EM4X50).
+  SKIPS = {
+    "desfire-sim" => "SKIP_DESFIRE_SIM",
+    "em4x50"      => "SKIP_EM4x50",
+    "em4x70"      => "SKIP_EM4x70",
+    "felica"      => "SKIP_FELICA",
+    "hfplot"      => "SKIP_HFPLOT",
+    "hfsniff"     => "SKIP_HFSNIFF",
+    "hitag"       => "SKIP_HITAG",
+    "iclass"      => "SKIP_ICLASS",
+    "iso14443a"   => "SKIP_ISO14443a",
+    "iso14443b"   => "SKIP_ISO14443b",
+    "iso15693"    => "SKIP_ISO15693",
+    "legicrf"     => "SKIP_LEGICRF",
+    "lf"          => "SKIP_LF",
+    "nfcbarcode"  => "SKIP_NFCBARCODE",
+    "zx8211"      => "SKIP_ZX8211",
+  }.freeze
   STANDALONE = {
     "lf" => %w[em4100emul em4100rswb em4100rsww em4100rwc hidbrute hidfcbrute icehid multihid nedap_sim nexid
-               prox2brute proxbrute prox2brute samyrun tharexde],
+               prox2brute proxbrute samyrun skeleton tharexde],
     "hf" => %w[14asniff 14bsniff 15sim 15sniff aveful bog cardhopper colin craftbyte doegox_auth0 doegox_commit
                emvpng iceclass legic legic_rdv4 legicsim mattyrun mfcsim msdsal reblay st25_tearoff tcprst
                tmudford unisniff young],
   }.freeze
+  # Standalone modes without an LF_/HF_ prefix.
+  STANDALONE_MISC = %w[dankarmulti].freeze
 
-  FUNCTIONS.each do |func|
-    option "without-#{func}", "Build without #{func.upcase} functionality"
+  SKIPS.each_key do |name|
+    option "without-#{name}", "Build without #{name} functionality"
   end
 
   STANDALONE.each do |freq, modes|
     modes.each do |mode|
       option "with-#{freq}-#{mode}", "Build with standalone mode #{freq.upcase}_#{mode.upcase}"
     end
+  end
+
+  STANDALONE_MISC.each do |mode|
+    option "with-#{mode}", "Build with standalone mode #{mode.upcase}"
   end
 
   def install
@@ -69,39 +93,45 @@ class Proxmark3 < Formula
     args << "PLATFORM_EXTRAS=#{platform_extras.join(" ")}" unless platform_extras.empty?
 
     if build.with? "small"
-      args << '
+      args += %w[
         PLATFORM_SIZE=256
         STANDALONE=
-        SKIP_HITAG=1
-        SKIP_LEGICRF=1
         SKIP_EM4x50=1
         SKIP_EM4x70=1
-        SKIP_ICLASS=1
         SKIP_FELICA=1
         SKIP_HFPLOT=1
         SKIP_HFSNIFF=1
+        SKIP_HITAG=1
+        SKIP_ICLASS=1
+        SKIP_LEGICRF=1
         SKIP_NFCBARCODE=1
         SKIP_ZX8211=1
-        SKIP_LEGICRF=1
-        '
+      ]
     end
+
     args << "SKIPQT=1" if build.without? "qt5"
 
-    FUNCTIONS.each do |func|
-      args << "SKIP_#{func.upcase}=1" if build.without? func
+    SKIPS.each do |name, flag|
+      args << "#{flag}=1" if build.without? name
     end
 
-    standalone = build.with?("standalone") ? nil : ""
-
+    selected = []
     STANDALONE.each do |freq, modes|
       modes.each do |mode|
-        if build.with? "#{freq}-#{mode}"
-          odie "Only one standalone mode may be selected" unless standalone.nil?
-          standalone = "#{freq.upcase}_#{mode.upcase}"
-        end
+        selected << "#{freq.upcase}_#{mode.upcase}" if build.with? "#{freq}-#{mode}"
       end
     end
+    STANDALONE_MISC.each do |mode|
+      selected << mode.upcase if build.with? mode
+    end
 
+    odie "Only one standalone mode may be selected" if selected.size > 1
+    if build.without?("standalone") && selected.any?
+      odie "--without-standalone conflicts with a standalone mode selection"
+    end
+
+    standalone = selected.first
+    standalone = "" if build.without? "standalone"
     args << "STANDALONE=#{standalone}" unless standalone.nil?
 
     args << "-j"
