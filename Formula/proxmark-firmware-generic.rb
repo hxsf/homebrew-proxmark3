@@ -31,6 +31,36 @@ class ProxmarkFirmwareGeneric < Formula
 
     system "make", "recovery/all", *args
     system "make", "recovery/install", *args
+
+    firmware = share/"proxmark3/firmware/generic"
+    bin.mkpath
+    %w[all bootrom fullimage].each do |mode|
+      images = (mode == "all") ? %w[bootrom.elf fullimage.elf] : ["#{mode}.elf"]
+      wrapper = bin/"pm3-flash-generic-#{mode}"
+      wrapper.write <<~SH
+        #!/bin/sh
+        set -eu
+        firmware_dir=#{firmware.to_s.shellescape}
+        for image in #{images.join(" ")}; do
+          if [ ! -f "$firmware_dir/$image" ] || [ ! -r "$firmware_dir/$image" ]; then
+            printf 'Missing or unreadable firmware: %s\\n' "$firmware_dir/$image" >&2
+            exit 1
+          fi
+        done
+        helper=$(command -v pm3-flash-#{mode}) || {
+          printf '%s\\n' 'pm3-flash-#{mode} was not found.' \\
+            'Install and link either proxmark-client or proxmark-client-gui.' >&2
+          exit 127
+        }
+        case "$helper" in
+          /*) ;;
+          *) helper="$PWD/$helper" ;;
+        esac
+        cd "$firmware_dir"
+        exec "$helper" "$@"
+      SH
+      wrapper.chmod 0755
+    end
   end
 
   def caveats
@@ -39,9 +69,13 @@ class ProxmarkFirmwareGeneric < Formula
       Firmware for generic 512KB Proxmark3 is installed in:
         #{firmware}
 
-      Use pm3-flash from a matching-version Proxmark3 client:
-        pm3-flash -b #{firmware}/bootrom.elf
-        pm3-flash #{firmware}/fullimage.elf
+      Install and link either proxmark-client or proxmark-client-gui separately.
+      Use a client matching the firmware version. Device-specific launchers:
+        pm3-flash-generic-bootrom
+        pm3-flash-generic-fullimage
+        pm3-flash-generic-all
+      These select this package's images and forward options to the upstream
+      helper found on PATH. They do not select the connected device for you.
 
       recovery.bin is the combined image for JTAG recovery.
     EOS
@@ -63,5 +97,39 @@ class ProxmarkFirmwareGeneric < Formula
     assert_path_exists recovery
     assert_operator recovery.size, :>, 0
     assert_operator recovery.size, :<=, 512 * 1024
+
+    # Substitute every helper so this test cannot discover or flash a device.
+    helpers = testpath/"helpers"
+    helpers.mkpath
+    %w[all bootrom fullimage].each do |mode|
+      helper = helpers/"pm3-flash-#{mode}"
+      helper.write <<~SH
+        #!/bin/sh
+        printf '%s\\n' '#{mode}'
+        pwd -P
+        for arg do printf '%s\\n' "$arg"; done
+        exit 37
+      SH
+      helper.chmod 0755
+    end
+
+    ENV["PATH"] = helpers.to_s
+    arguments = [[], %w[--help], %w[--list], %w[-n 2 --force], ["-p", "/dev/port with spaces"]]
+    %w[all bootrom fullimage].each do |mode|
+      wrapper = bin/"pm3-flash-generic-#{mode}"
+      arguments.each do |args|
+        output = shell_output([wrapper.to_s, *args].shelljoin, 37)
+        assert_equal [mode, firmware.realpath.to_s, *args], output.lines.map(&:chomp)
+      end
+    end
+
+    # Resolve a relative PATH entry before changing to the firmware directory.
+    ENV["PATH"] = "helpers"
+    output = shell_output("#{bin}/pm3-flash-generic-all --list", 37)
+    assert_equal ["all", firmware.realpath.to_s, "--list"], output.lines.map(&:chomp)
+
+    ENV["PATH"] = (testpath/"no-client").to_s
+    output = shell_output("#{bin}/pm3-flash-generic-all 2>&1", 127)
+    assert_match "Install and link either proxmark-client or proxmark-client-gui", output
   end
 end
