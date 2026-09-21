@@ -102,6 +102,23 @@ the upstream scripts, this check uses a space-free helper installation prefix.
 The launchers check firmware before resolving the client, including for help or
 list requests. A damaged package therefore reports its missing image first.
 
+## CI checks
+
+### Build CI
+
+Formula style/audit and workflow syntax were checked. The existing Arm compiler
+formula is retained in this tap; its version, both architecture URLs and SHA256
+values match upstream. Its test compiles a C file using standard headers for
+ARM7TDMI and Cortex-M4. Formula loading on Linux was checked without installing
+macOS binaries; this does not establish Linux build support.
+
+Offline fixtures verify the test-bot build lists for the owning upstream tap and
+for forks. The upstream tap builds a missing compiler bottle in the same batch;
+forks exclude their unused compiler mirror from installation tests and may use
+a temporary local bottle for the upstream dependency. Homebrew's `file://`
+bottle download/SHA256 handling and `bottled_or_built?` predicate were checked
+separately. No runner-local compiler bottle is uploaded by the fork.
+
 ## Deferred and unverified cases
 
 The upstream documented 256 KiB example was tested without changes using Arm's
