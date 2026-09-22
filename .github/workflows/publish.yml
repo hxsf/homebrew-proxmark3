@@ -68,14 +68,75 @@ jobs:
           PULL_REQUEST: ${{ inputs.pull_request }}
         run: |
           python3 .github/scripts/release_guard.py verify "$RUNNER_TEMP/proxmark-release.json"
-          brew pr-pull --debug --retain-bottle-dir --tap="$GITHUB_REPOSITORY" --head-sha="$HEAD_SHA" \
+          brew pr-pull --debug --no-upload --retain-bottle-dir --tap="$GITHUB_REPOSITORY" --head-sha="$HEAD_SHA" \
             --artifact-pattern="$ARTIFACT_PATTERN" "$PULL_REQUEST"
           python3 .github/scripts/release_guard.py verify "$RUNNER_TEMP/proxmark-release.json"
+
+      - name: Merge bottle metadata for this publication attempt
+        id: bottle_metadata
+        env:
+          HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HOMEBREW_GIT_COMMITTER_NAME: ${{ steps.git_setup.outputs.name }}
+          HOMEBREW_GIT_COMMITTER_EMAIL: ${{ steps.git_setup.outputs.email }}
+          BOTTLE_DIR: ${{ steps.pull_bottles.outputs.bottle_path }}
+        run: |
+          release_tag="bottles-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          root_url="https://github.com/$GITHUB_REPOSITORY/releases/download/$release_tag"
+          echo "release_tag=$release_tag" >> "$GITHUB_OUTPUT"
+          cd "$BOTTLE_DIR"
+          ROOT_URL="$root_url" brew ruby -e '
+            require "json"
+            documents = Dir["*.bottle.json"].to_h { |path| [path, JSON.parse(File.read(path))] }
+            names = documents.values.flat_map do |bottles|
+              bottles.map do |name, bottle|
+                formula = Formula[name]
+                abort "Bottle version mismatch for #{name}" unless
+                  formula.pkg_version.to_s == bottle.fetch("formula").fetch("pkg_version")
+                bottle.fetch("bottle")["root_url"] = ENV.fetch("ROOT_URL")
+                name
+              end
+            end
+            abort "No bottle metadata found" if names.empty?
+            documents.each { |path, bottles| File.write(path, JSON.pretty_generate(bottles) + "\n") }
+            puts names.uniq.sort
+          ' > "$RUNNER_TEMP/proxmark-bottled-formulae.txt"
+          brew bottle --merge --write ./*.bottle.json
+          mapfile -t formulae < "$RUNNER_TEMP/proxmark-bottled-formulae.txt"
+          ROOT_URL="$root_url" brew ruby -e '
+            ARGV.each do |name|
+              abort "Bottle URL mismatch for #{name}" unless
+                Formula[name].bottle_specification.root_url == ENV.fetch("ROOT_URL")
+            end
+          ' "${formulae[@]}"
+          brew audit --skip-style "${formulae[@]}"
+
+      - name: Verify assets and upload a draft release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_SHA: ${{ steps.verified.outputs.head_sha }}
+          BOTTLE_DIR: ${{ steps.pull_bottles.outputs.bottle_path }}
+          BOTTLE_RELEASE_TAG: ${{ steps.bottle_metadata.outputs.release_tag }}
+          PULL_REQUEST: ${{ inputs.pull_request }}
+        run: |
+          python3 .github/scripts/stage-bottles.py "$BOTTLE_DIR" "$RUNNER_TEMP/proxmark-release-assets"
+          version_tag=$(python3 .github/scripts/release_guard.py tag .)
+          gh release create "$BOTTLE_RELEASE_TAG" "$RUNNER_TEMP/proxmark-release-assets/"*.tar.gz \
+            --repo "$GITHUB_REPOSITORY" --draft --target "$HEAD_SHA" \
+            --title "Proxmark3 $version_tag bottles" \
+            --notes "Bottles built from PR #$PULL_REQUEST at $HEAD_SHA."
 
       - name: Generate build provenance
         uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
         with:
-          subject-path: "${{ steps.pull_bottles.outputs.bottle_path }}/*.tar.gz"
+          subject-path: "${{ runner.temp }}/proxmark-release-assets/*.tar.gz"
+
+      - name: Publish the complete bottle release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BOTTLE_RELEASE_TAG: ${{ steps.bottle_metadata.outputs.release_tag }}
+        run: |
+          python3 .github/scripts/release_guard.py verify "$RUNNER_TEMP/proxmark-release.json"
+          gh release edit "$BOTTLE_RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --draft=false --latest
 
       - name: Push commits
         uses: Homebrew/actions/git-try-push@1e34f2e2acaa766b7efacb8c26352e6abbb023f9 # 2026.09.13.1
