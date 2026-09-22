@@ -11,6 +11,12 @@ class ProxmarkFirmwareRdv4 < Formula
     strategy :github_latest
   end
 
+  bottle do
+    root_url "https://github.com/hxsf/homebrew-proxmark3/releases/download/bottles-35689015770-1"
+    sha256 cellar: :any_skip_relocation, arm64_tahoe:   "e1a53ead6e0eb19ddd09f5f300b53d40d1f6c0095267e97ff2ab66139a88c1bc"
+    sha256 cellar: :any_skip_relocation, arm64_sequoia: "0c148bd51434cc8349cb68353ee4c07afcee360a2545eb039c6e616d1a3c3997"
+  end
+
   depends_on "rfidresearchgroup/proxmark3/arm-none-eabi-gcc" => :build
   depends_on :macos
 
