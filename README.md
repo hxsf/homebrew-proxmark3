@@ -44,6 +44,12 @@ brew install proxmark-client proxmark-firmware-rdv4
 # Or choose proxmark-client-gui instead of proxmark-client.
 ```
 
+The legacy name `proxmark3` is an alias for `proxmark-client`, so installing
+`rfidresearchgroup/proxmark3/proxmark3` installs the CLI client. Choose
+`proxmark-client-gui` explicitly for Qt windows. The alias installs no device
+firmware and does not forward old firmware options; existing combined-package
+installations require the [migration steps below](#migrating-an-existing-combined-package).
+
 Bottles are used when published for a compatible macOS version and CPU.
 The CI builds bottles for arm64 Sequoia and Tahoe. Custom builds with options
 compile from source.
@@ -163,9 +169,54 @@ need either library.
 The current tap and upstream toolchain package are macOS-only. Linux support is
 planned for future validation; this dependency does not establish Linux support.
 
-Unlink or uninstall an old combined `proxmark3`/`proxmark3-*` package before
-linking a new client, since they install the same commands. Install the new
-firmware package for your device separately.
+### Migrating an existing combined package
+
+The `proxmark3` alias preserves the installation name, not the old combined
+package or its firmware configuration. There is no automatic formula rename
+or one-to-many migration. Choose the new firmware package using your device
+and the firmware options used for the old installation:
+
+| Previous firmware configuration | New firmware package |
+| --- | --- |
+| RDV4 with default firmware options | `proxmark-firmware-rdv4` |
+| Generic with no other firmware overrides | `proxmark-firmware-generic` |
+| Extras, feature trimming, standalone or size overrides | `proxmark-firmware-custom`, with the corresponding firmware options |
+
+Keep `--with-generic` when moving a customized Generic build to the custom
+package. Options such as `--with-flash`, `--without-lf` and `--with-hf-mfcsim`
+belong to `proxmark-firmware-custom`; they cannot be passed to the client or
+through the `proxmark3` alias. The custom package's `--with-small` additionally
+requires `--with-generic` and does not guarantee that firmware fits in 256 KiB.
+
+For a first migration, unlink the old combined package before installing
+either new client. This leaves its files available while you select and
+install the replacement firmware:
+
+```sh
+if test -d "$(brew --cellar)/proxmark3" &&
+   ! test -L "$(brew --cellar)/proxmark3" &&
+   ! test -d "$(brew --cellar)/proxmark-client" &&
+   ! test -d "$(brew --cellar)/proxmark-client-gui"; then
+  brew unlink --formula proxmark3
+fi
+```
+
+Once the new CLI client is installed, Homebrew's `opt/proxmark3` alias can
+refer to it even while the old Cellar directory remains. Do not use the old
+name to unlink or uninstall after migration. The first-time check above skips
+installations where a new client already exists. For another old `proxmark3-*`
+package, unlink its actual installed name before installing a new client.
+Then install the canonical client and selected firmware names, for example,
+for an RDV4 using default firmware options:
+
+```sh
+brew install proxmark-client proxmark-firmware-rdv4
+```
+
+Choose `proxmark-client-gui` instead if you need Qt windows, and use the
+canonical client name for subsequent upgrades, switching and removal.
+
+### Switching Arm toolchain taps
 
 If `arm-none-eabi-gcc` is already installed from another tap, Homebrew may
 refuse the same-named upstream package. When intentionally switching the compiler
