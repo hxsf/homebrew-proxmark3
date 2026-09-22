@@ -163,8 +163,8 @@ Intel formula support remains available for best-effort source builds.
 Offline publication fixtures cover PR state, destination, head SHA, latest CI
 success, artifact run/attempt pinning, and rejection when the selected PR/run
 changes. A temporary local Git remote verifies exact-SHA tagging, idempotency and
-refusal to move an existing tag. The complete workflows still need execution on
-GitHub-hosted runners; no release was published by this validation.
+refusal to move an existing tag. Asset staging fixtures also verify checksums,
+safe filenames, duplicate handling and rejection of symlinks.
 
 A first hosted publication attempt exposed Homebrew's incompatibility with
 immutable releases: its uploader creates a published release before attaching
@@ -173,6 +173,32 @@ Homebrew to collect bottles and merge metadata, verifies and stages the named
 assets, and uses GitHub CLI to upload a draft. It publishes the draft only after
 all uploads and build attestations succeed. Each publication attempt uses a
 distinct release tag; repository immutability remains enabled.
+
+Hosted validation on 2026-09-22 used source commit `183eb79` in the fork:
+
+- [Bottle CI](https://github.com/hxsf/homebrew-proxmark3/actions/runs/35687708774)
+  built and tested all seven formulae on macOS 15 and 26 (arm64).
+- [Publication](https://github.com/hxsf/homebrew-proxmark3/actions/runs/35689015770)
+  uploaded and published 14 bottles, generated provenance and pushed metadata.
+  The annotated `v4.23346` tag and published default branch both identified
+  `e3a2b436bf9804cb4b70fc1be8fa14c8d7d1465f`.
+- All 14 asset digests in the [immutable release](https://github.com/hxsf/homebrew-proxmark3/releases/tag/bottles-35689015770-1)
+  matched the published formula metadata.
+
+On macOS 27 arm64 with Homebrew `7.0.4-49-ga83186e`, all seven bottles were
+downloaded into a separate cache without GitHub token or mirror environment
+settings. Homebrew selected `arm64_tahoe`; downloaded SHA-256 values matched
+both formula metadata and release assets. All seven standard bottle installs
+and formula tests passed, and both clients passed strict linkage checks.
+
+The RRG tap and old combined client were removed before local testing. Client
+bottles installed without that tap, but firmware installation required its
+compiler formula metadata: this Homebrew version resolves the dependency
+before pruning build-only dependencies. Restoring the RRG tap and trusting only
+its compiler formula allowed standard bottle installation without
+`--ignore-dependencies`. No RRG-owned package was installed, and the existing
+compiler receipt was unchanged. Fork users still need this metadata available;
+the upstream tap already contains the compiler formula itself.
 
 ## Deferred and unverified cases
 
@@ -192,5 +218,5 @@ client configuration and is not included in the final package set.
 
 No physical device was flashed. Qt image tests were offscreen, not a native
 Cocoa interaction audit. Intel builds have not passed. Older macOS versions,
-HEAD builds, complete custom-option combinations and release publication were
-not validated.
+HEAD builds and complete custom-option combinations were not validated. An
+automatic synchronized bump to a newer upstream release has not been exercised.
