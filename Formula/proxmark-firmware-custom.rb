@@ -1,36 +1,35 @@
-class Proxmark3 < Formula
-  desc "RRG/Iceman Proxmark3 client, CDC flasher and firmware bundle"
-  homepage "http://www.proxmark.org/"
+class ProxmarkFirmwareCustom < Formula
+  desc "RRG/Iceman Proxmark firmware with custom build options"
+  homepage "https://github.com/RfidResearchGroup/proxmark3"
   url "https://github.com/RfidResearchGroup/proxmark3/archive/refs/tags/v4.23346.tar.gz"
   sha256 "5d727313d912d8d758365d3528fbf8af7463e5deec23a9bef79f1fab4fd0c66d"
-  head do
-    if ENV.key?("HOMEBREW_TRAVIS_COMMIT")
-      url "https://github.com/RfidResearchGroup/proxmark3.git", branch: ENV["HOMEBREW_TRAVIS_BRANCH"].to_s, revision: ENV["HOMEBREW_TRAVIS_COMMIT"].to_s
-    else
-      url "https://github.com/RfidResearchGroup/proxmark3.git"
-    end
+  license "GPL-3.0-or-later"
+  head "https://github.com/RfidResearchGroup/proxmark3.git", branch: "master"
+
+  livecheck do
+    url :stable
+    strategy :github_latest
   end
 
   option "with-blueshark", "Enable Blueshark (BT Addon) support"
   option "with-smartcard", "Enable Smartcard support"
   option "with-flash", "Enable Flash support"
   option "with-generic", "Build for generic devices instead of RDV4"
-  option "with-small", "Build for 256kB devices"
+  option "with-5", "Build for Proxmark 5 instead of RDV4"
+  option "with-ultimate", "Build for Proxmark3 Ultimate instead of RDV4"
+  option "with-bwm", "Enable Proxmark 5 BWM addon support"
+  option "without-lowbatt-shutdown", "Disable Proxmark 5 low-battery shutdown"
+  option "without-lowbatt-beep", "Disable Proxmark 5 low-battery beep and shutdown"
+  option "with-small", "Build for generic 256kB devices (requires --with-generic)"
   option "without-standalone", "Build without standalone mode"
 
-  depends_on "lua" => :build
-
-  depends_on "openssl@3" => :build
-
-  depends_on "pkg-config" => :build
-
-  depends_on "python@3.14" => :build
   depends_on "rfidresearchgroup/proxmark3/arm-none-eabi-gcc" => :build
-  depends_on "coreutils"
-  depends_on "readline"
-  depends_on "gd" => :recommended
-  depends_on "openssl" => :recommended
-  depends_on "qt@5" => :recommended
+  depends_on :macos
+
+  on_intel do
+    # Required by the upstream Arm SDK until its formula declares this dependency.
+    depends_on "zstd" => :build
+  end
 
   # Maps each --without-<name> option to the exact-case SKIP_* flag that
   # common_arm/Makefile.hal expects upstream (e.g. SKIP_EM4x50, not
@@ -40,6 +39,7 @@ class Proxmark3 < Formula
     "em4x50"      => "SKIP_EM4x50",
     "em4x70"      => "SKIP_EM4x70",
     "felica"      => "SKIP_FELICA",
+    "hf"          => "SKIP_HF",
     "hfplot"      => "SKIP_HFPLOT",
     "hfsniff"     => "SKIP_HFSNIFF",
     "hitag"       => "SKIP_HITAG",
@@ -50,6 +50,7 @@ class Proxmark3 < Formula
     "legicrf"     => "SKIP_LEGICRF",
     "lf"          => "SKIP_LF",
     "nfcbarcode"  => "SKIP_NFCBARCODE",
+    "seos"        => "SKIP_SEOS",
     "zx8211"      => "SKIP_ZX8211",
   }.freeze
   STANDALONE = {
@@ -79,9 +80,32 @@ class Proxmark3 < Formula
   def install
     ENV.deparallelize
 
+    platforms = {
+      "generic"  => "PM3GENERIC",
+      "5"        => "PM5",
+      "ultimate" => "PM3ULTIMATE",
+    }
+    selected_platforms = platforms.select { |option, _| build.with? option }
+    odie "Only one platform may be selected" if selected_platforms.size > 1
+    platform = selected_platforms.values.first || "PM3RDV4"
+
+    if build.with?("small") && platform != "PM3GENERIC"
+      odie "--with-small is only valid for generic 256kB devices (--with-generic)"
+    end
+
+    pm5_extras = []
+    pm5_extras << "BWM" if build.with? "bwm"
+    pm5_extras << "NO_LOWBATT_SHUTDOWN" if build.without? "lowbatt-shutdown"
+    pm5_extras << "NO_LOWBATT_BEEP" if build.without? "lowbatt-beep"
+    if platform != "PM5" && pm5_extras.any?
+      odie "BWM and low-battery extras require a Proxmark 5 build (--with-5)"
+    end
+
     args = %W[
       BREW_PREFIX=#{HOMEBREW_PREFIX}
-      PLATFORM=#{build.with?("generic") ? "PM3GENERIC" : "PM3RDV4"}
+      CROSS=#{formula_opt_bin("rfidresearchgroup/proxmark3/arm-none-eabi-gcc")}/arm-none-eabi-
+      PLATFORM=#{platform}
+      DONT_BUILD_NATIVE=y
     ]
 
     # Build PLATFORM_EXTRAS based on selected options
@@ -89,6 +113,7 @@ class Proxmark3 < Formula
     platform_extras << "BTADDON" if build.with? "blueshark"
     platform_extras << "SMARTCARD" if build.with? "smartcard"
     platform_extras << "FLASH" if build.with? "flash"
+    platform_extras += pm5_extras
 
     args << "PLATFORM_EXTRAS=#{platform_extras.join(" ")}" unless platform_extras.empty?
 
@@ -108,8 +133,6 @@ class Proxmark3 < Formula
         SKIP_ZX8211=1
       ]
     end
-
-    args << "SKIPQT=1" if build.without? "qt5"
 
     SKIPS.each do |name, flag|
       args << "#{flag}=1" if build.without? name
@@ -134,17 +157,37 @@ class Proxmark3 < Formula
     standalone = "" if build.without? "standalone"
     args << "STANDALONE=#{standalone}" unless standalone.nil?
 
-    args << "-j"
+    system "make", "recovery/all", *args
+    system "make", "recovery/install", "PREFIX=#{prefix}",
+                   "INSTALLFWRELPATH=share/proxmark3/firmware/custom", *args
+  end
 
-    system "make", "clean", *args
-    system "make", "all", *args
-    system "make", "install", "PREFIX=#{prefix}", *args
+  def caveats
+    firmware = opt_share/"proxmark3/firmware/custom"
 
-    ohai "Install success!"
-    ohai "The latest bootloader and firmware binaries are in share/firmware within the Homebrew Cellar."
+    <<~EOS
+      Firmware is installed in:
+        #{firmware}
+
+      Use pm3-flash from a matching-version Proxmark3 client:
+        pm3-flash -b #{firmware}/bootrom.elf
+        pm3-flash #{firmware}/fullimage.elf
+
+      --with-small retains the legacy trimming options and checks the 256KB
+      limit. It may require additional --without-* options for current releases.
+    EOS
   end
 
   test do
-    system "proxmark3", "-h"
+    firmware = share/"proxmark3/firmware/custom"
+    %w[bootrom.elf fullimage.elf].each do |name|
+      header = (firmware/name).binread(20)
+      assert_equal "\x7FELF", header[0, 4]
+      assert_equal 1, header.getbyte(4) # ELF32
+      assert_equal 1, header.getbyte(5) # Little endian
+      assert_equal 40, header[18, 2].unpack1("v") # ARM
+    end
+    assert_operator (firmware/"recovery.bin").size, :>, 0
+    assert_operator (firmware/"recovery.bin").size, :<=, 512 * 1024
   end
 end
