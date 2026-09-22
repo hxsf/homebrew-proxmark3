@@ -11,6 +11,12 @@ class ProxmarkFirmwareCustom < Formula
     strategy :github_latest
   end
 
+  bottle do
+    root_url "https://github.com/hxsf/homebrew-proxmark3/releases/download/bottles-35689015770-1"
+    sha256 cellar: :any_skip_relocation, arm64_tahoe:   "3c69c3626070b59554e3a50c63c868d880910ea4da94d1a0d891b89079f891c5"
+    sha256 cellar: :any_skip_relocation, arm64_sequoia: "013309be6c00953642e5ae468989ba6b85373db7450eed08b09969bfd8e06c77"
+  end
+
   option "with-blueshark", "Enable Blueshark (BT Addon) support"
   option "with-smartcard", "Enable Smartcard support"
   option "with-flash", "Enable Flash support"
