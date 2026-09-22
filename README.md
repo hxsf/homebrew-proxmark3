@@ -21,6 +21,12 @@ The old HID-flasher doesn't compile on this version. You'll need to manually fix
   - `brew install --HEAD --with-blueshark proxmark3` for blueshark support, latest non-stable from GitHub (use this if previous command fails)
   - `brew install --with-generic --with-flash proxmark3` build for generic (non-RDV4) devices with external flash chip, stable release
 
+### Arm toolchain
+
+The Arm SDK remains at version `13.3-2024.7`. On Intel Macs, its compiler needs
+`zstd` and its debugger needs `xz`; the compiler formula declares both as
+runtime dependencies. The arm64 SDK does not need these external libraries.
+
 ### Build options
 
 Use `brew info proxmark3` to see all available options.
