@@ -11,6 +11,12 @@ class ProxmarkClient < Formula
     strategy :github_latest
   end
 
+  bottle do
+    root_url "https://github.com/hxsf/homebrew-proxmark3/releases/download/bottles-35689015770-1"
+    sha256 cellar: :any, arm64_tahoe:   "47f14946eef642a9c5de42fd0640c547f6057729b77b91068a6402d0fd9e0f94"
+    sha256 cellar: :any, arm64_sequoia: "a991e06ad581505e669060d14aae3175af88f71b2a35a26a2ae6a5f750843752"
+  end
+
   depends_on "pkgconf" => :build
   depends_on "coreutils"
   depends_on "gd"
