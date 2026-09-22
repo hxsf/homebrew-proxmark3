@@ -27,6 +27,20 @@ brew test --force rfidresearchgroup/proxmark3/proxmark-client rfidresearchgroup/
 brew linkage --test --strict rfidresearchgroup/proxmark3/proxmark-client rfidresearchgroup/proxmark3/proxmark-client-gui
 ```
 
+### Legacy client alias
+
+`Aliases/proxmark3` points to `proxmark-client`; the old installation name
+selects the CLI client without device firmware or firmware build options.
+The compatibility change adds no `formula_renames.json` mapping. Existing
+combined installations still require an explicit client/firmware migration.
+
+Homebrew resolved the fully qualified alias in an isolated temporary tap to
+the same formula and version as `proxmark-client`. Its dependencies contain
+no Qt, firmware or Arm compiler, and it exposes no old firmware build options
+or automatic rename metadata. Five shell fixtures verified that the README's
+first-time unlink step runs only for an old real Cellar directory when neither
+new client is installed. No installed package was unlinked or removed.
+
 ## Firmware
 
 The firmware dependency is the upstream
