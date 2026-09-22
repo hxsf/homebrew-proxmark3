@@ -44,8 +44,16 @@ brew install proxmark-client proxmark-firmware-rdv4
 # Or choose proxmark-client-gui instead of proxmark-client.
 ```
 
-Bottles are used when published for a compatible macOS version and CPU;
-otherwise Homebrew builds from source. Custom builds with options compile from source.
+Bottles are used when published for a compatible macOS version and CPU.
+The CI builds bottles for arm64 Sequoia and Tahoe. Custom builds with options
+compile from source.
+
+Intel Macs retain source-build support on a best-effort basis. Homebrew has
+[stopped building new Intel bottles](https://docs.brew.sh/Support-Tiers#future-macos-support),
+and the current client dependencies lack a complete set of compatible bottles.
+This tap does not build Intel bottles. Intel users may
+need to build dependencies, including Qt and Python, from source; successful
+Intel installation has not been validated.
 
 To switch clients, unlink the installed variant before installing/linking the
 other one. Firmware packages do not need to be switched.
@@ -170,3 +178,12 @@ brew install rfidresearchgroup/proxmark3/arm-none-eabi-gcc
 ```
 
 Users installing prebuilt client/firmware bottles do not need the compiler.
+
+## For maintainers
+
+The default-branch CI checks tap syntax and CI helpers. Pull requests also
+build and test changed formulae on the macOS matrix. In the upstream tap, an unbottled Arm compiler is
+included in the same test-bot build before the dependent firmware. Forks use the
+fully qualified upstream compiler; a runner-local bootstrap bottle stays outside
+the artifacts uploaded by the fork. The retained compiler's version and Arm
+archive checksums are unchanged by this package split.
