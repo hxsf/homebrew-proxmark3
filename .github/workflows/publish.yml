@@ -84,30 +84,33 @@ jobs:
           root_url="https://github.com/$GITHUB_REPOSITORY/releases/download/$release_tag"
           echo "release_tag=$release_tag" >> "$GITHUB_OUTPUT"
           cd "$BOTTLE_DIR"
-          ROOT_URL="$root_url" brew ruby -e '
+          # Homebrew filters custom environment variables; pass the URL as an argument.
+          brew ruby -e '
             require "json"
+            root_url = ARGV.fetch(0)
             documents = Dir["*.bottle.json"].to_h { |path| [path, JSON.parse(File.read(path))] }
             names = documents.values.flat_map do |bottles|
               bottles.map do |name, bottle|
                 formula = Formula[name]
                 abort "Bottle version mismatch for #{name}" unless
                   formula.pkg_version.to_s == bottle.fetch("formula").fetch("pkg_version")
-                bottle.fetch("bottle")["root_url"] = ENV.fetch("ROOT_URL")
+                bottle.fetch("bottle")["root_url"] = root_url
                 name
               end
             end
             abort "No bottle metadata found" if names.empty?
             documents.each { |path, bottles| File.write(path, JSON.pretty_generate(bottles) + "\n") }
             puts names.uniq.sort
-          ' > "$RUNNER_TEMP/proxmark-bottled-formulae.txt"
+          ' "$root_url" > "$RUNNER_TEMP/proxmark-bottled-formulae.txt"
           brew bottle --merge --write ./*.bottle.json
           mapfile -t formulae < "$RUNNER_TEMP/proxmark-bottled-formulae.txt"
-          ROOT_URL="$root_url" brew ruby -e '
+          brew ruby -e '
+            root_url = ARGV.shift
             ARGV.each do |name|
               abort "Bottle URL mismatch for #{name}" unless
-                Formula[name].bottle_specification.root_url == ENV.fetch("ROOT_URL")
+                Formula[name].bottle_specification.root_url == root_url
             end
-          ' "${formulae[@]}"
+          ' "$root_url" "${formulae[@]}"
           brew audit --skip-style "${formulae[@]}"
 
       - name: Verify assets and upload a draft release
